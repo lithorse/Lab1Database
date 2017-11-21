@@ -24,13 +24,13 @@ namespace Lab1Database
         public MainWindow()
         {
             InitializeComponent();
-            UpdateListboxes();
+            UpdateDirectorListboxes();
         }
 
         private SqlConnection conn;
         private String Datastring = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=FilmDatabase;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
-        private void UpdateListboxes()
+        private void UpdateDirectorListboxes()
         {
             Task.Run(() =>
             {
@@ -60,12 +60,47 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
-                        UpdateComboBoxDirectors();
+                        UpdateMoviesListboxes();
                     }
                 }
             });
         }
 
+        private void UpdateMoviesListboxes()
+        {
+            Task.Run(() =>
+            {
+                using (conn = new SqlConnection(Datastring))
+                {
+                    try
+                    {
+                        conn.Open();
+                        SqlCommand command = new SqlCommand(@"SELECT Title + ' ' FROM Movies", conn);
+                        SqlDataReader reader = command.ExecuteReader();
+                        Dispatcher.Invoke(() =>
+                        {
+                            ListBoxMovie.Items.Clear();
+                            while (reader.Read())
+                            {
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    ListBoxMovie.Items.Add(reader[i]);
+                                }
+                            }
+                        });
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(e.Message);
+                    }
+                    finally
+                    {
+                        conn.Close();
+                        UpdateComboBoxDirectors();
+                    }
+                }
+            });
+        }
         private void UpdateComboBoxDirectors()
         {
             Task.Run(() =>
@@ -87,7 +122,6 @@ namespace Lab1Database
                                     ComboBoxDirectors.Items.Add(reader[i]);
                                 }
                             }
-                            ComboBoxDirectors.SelectedIndex = 0;
                         });
                     }
                     catch (Exception e)
@@ -104,7 +138,17 @@ namespace Lab1Database
 
         private void ButtonUpdateClick(object sender, RoutedEventArgs e)
         {
-            UpdateListboxes();
+            //Updatedi();
+        }
+
+        private void ListBoxMovie_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                TextBoxFirstName.Text = (string)ListBoxDirector.SelectedItem;
+                TextBoxTitle.Text = (string)ListBoxMovie.SelectedItem;
+                //ComboBoxDirectors.SelectedIndex = ListBoxMovie.SelectedIndex - 1;   //Fel atm
+            });
         }
     }
 }

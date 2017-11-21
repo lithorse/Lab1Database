@@ -11,7 +11,7 @@
             <ColumnDefinition/>
             <ColumnDefinition Width="0*"/>
         </Grid.ColumnDefinitions>
-        <ListBox x:Name="ListBoxMovie" HorizontalAlignment="Left" Height="170" Margin="14,87,0,0" VerticalAlignment="Top" Width="150"/>
+        <ListBox x:Name="ListBoxMovie" SelectionChanged="ListBoxMovie_SelectionChanged" HorizontalAlignment="Left" Height="170" Margin="14,87,0,0" VerticalAlignment="Top" Width="150"/>
         <ListBox x:Name="ListBoxDirector" HorizontalAlignment="Left" Height="170" Margin="184,87,0,0" VerticalAlignment="Top" Width="150"/>
         <Label Content="Movies" HorizontalAlignment="Left" Margin="14,55,0,0" VerticalAlignment="Top" Height="26" Width="48"/>
         <Label Content="Directors" HorizontalAlignment="Left" Margin="184,55,0,0" VerticalAlignment="Top" Height="26" Width="58"/>
