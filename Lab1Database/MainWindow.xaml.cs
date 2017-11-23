@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -60,13 +61,13 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
-                        UpdateMoviesListboxes();
+                        UpdateMoviesListboxes(true);
                     }
                 }
             });
         }
 
-        private void UpdateMoviesListboxes()
+        private void UpdateMoviesListboxes(bool needToUpdateComboBoxDirectors)
         {
             Task.Run(() =>
             {
@@ -75,7 +76,7 @@ namespace Lab1Database
                     try
                     {
                         conn.Open();
-                        SqlCommand command = new SqlCommand(@"SELECT Title + ' ' FROM Movies", conn);
+                        SqlCommand command = new SqlCommand(@"SELECT Title FROM Movies", conn);
                         SqlDataReader reader = command.ExecuteReader();
                         Dispatcher.Invoke(() =>
                         {
@@ -96,7 +97,8 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
-                        UpdateComboBoxDirectors();
+                        if (needToUpdateComboBoxDirectors)
+                            UpdateComboBoxDirectors();
                     }
                 }
             });
@@ -136,18 +138,114 @@ namespace Lab1Database
             });
         }
 
-        private void ButtonUpdateClick(object sender, RoutedEventArgs e)
-        {
-            //Updatedi();
-        }
-
         private void ListBoxMovie_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             Dispatcher.Invoke(() =>
             {
-                TextBoxFirstName.Text = (string)ListBoxDirector.SelectedItem;
                 TextBoxTitle.Text = (string)ListBoxMovie.SelectedItem;
-                //ComboBoxDirectors.SelectedIndex = ListBoxMovie.SelectedIndex - 1;   //Fel atm
+            });
+            PrintDataFromMovieId(ListBoxMovie.SelectedIndex + 1);
+        }
+
+        private void PrintDataFromMovieId(int Id)
+        {
+            Task.Run(() =>
+            {
+                using (conn = new SqlConnection(Datastring))
+                {
+                    try
+                    {
+                        conn.Open();
+                        SqlCommand command = new SqlCommand(@"SELECT DirectorId FROM Movies WHERE Id=" + Id, conn);
+                        SqlDataReader reader = command.ExecuteReader();
+                        reader.Read();
+                        int DirectorId = (int)reader[0];
+                        Dispatcher.Invoke(() =>
+                        {
+                            LabelDirectorId.Content = "ID: " + DirectorId;
+                            ComboBoxDirectors.SelectedIndex = DirectorId - 1;
+                        });
+                        command = new SqlCommand(@"SELECT FirstName FROM Directors WHERE Id='" + DirectorId + "'", conn);
+                        reader.Close();
+                        reader = command.ExecuteReader();
+                        reader.Read();
+                        Dispatcher.Invoke(() =>
+                        {
+                            TextBoxFirstName.Text = (string)reader[0];
+                        });
+                        command = new SqlCommand(@"SELECT LastName FROM Directors WHERE Id='" + DirectorId + "'", conn);
+                        reader.Close();
+                        reader = command.ExecuteReader();
+                        reader.Read();
+                        Dispatcher.Invoke(() =>
+                        {
+                            TextBoxLastName.Text = (string)reader[0];
+                        });
+                        command = new SqlCommand(@"SELECT Id FROM Movies WHERE Id=" + Id, conn);
+                        reader.Close();
+                        reader = command.ExecuteReader();
+                        reader.Read();
+                        int MovieId = (int)reader[0];
+                        Dispatcher.Invoke(() =>
+                        {
+                            LabelMovieId.Content = "ID: " + MovieId;
+                        });
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(e.Message);
+                    }
+                    finally
+                    {
+                        conn.Close();
+                    }
+                }
+            });
+        }
+
+        private void ButtonUpdateClick(object sender, RoutedEventArgs e)
+        {
+            Match firstName = Regex.Match(ComboBoxDirectors.SelectedItem.ToString(), @"\w+");
+            UpdateMovie((string)ListBoxMovie.SelectedItem, TextBoxTitle.Text, firstName.Value);
+        }
+
+        private void UpdateMovie(string title, string newTitle, string DirectorFirstName)
+        {
+            Task.Run(() =>
+            {
+                using (conn = new SqlConnection(Datastring))
+                {
+                    try
+                    {
+                        conn.Open();
+                        SqlCommand command = new SqlCommand(@"SELECT Id FROM Directors WHERE FirstName = '" + DirectorFirstName + "'", conn);
+                        SqlDataReader reader = command.ExecuteReader();
+                        reader.Read();
+                        int NewDirectorId = (int)reader[0];
+                        reader.Close();
+                        command = new SqlCommand(@"UPDATE Movies SET Title = '" + newTitle + "' WHERE Title = '" + title + "'", conn);
+                        command.ExecuteNonQuery();
+                        command = new SqlCommand(@"UPDATE Movies SET DirectorId = '" + NewDirectorId + "' WHERE Title = '" + title + "'", conn);
+                        command.ExecuteNonQuery();
+                        if (title != newTitle)
+                        {
+                            Dispatcher.Invoke(() =>
+                            {
+                                ListBoxMovie.Items.Insert(ListBoxMovie.Items.IndexOf(title), newTitle);
+                                ListBoxMovie.SelectedIndex = ListBoxMovie.Items.IndexOf(title) - 1;
+                                ListBoxMovie.Items.RemoveAt(ListBoxMovie.Items.IndexOf(title));
+                            });
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(e.Message);
+                    }
+                    finally
+                    {
+                        conn.Close();
+                    }
+                }
             });
         }
     }
