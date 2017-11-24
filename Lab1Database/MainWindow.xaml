@@ -12,7 +12,7 @@
             <ColumnDefinition Width="0*"/>
         </Grid.ColumnDefinitions>
         <ListBox x:Name="ListBoxMovie" SelectionChanged="ListBoxMovie_SelectionChanged" HorizontalAlignment="Left" Height="170" Margin="14,87,0,0" VerticalAlignment="Top" Width="150"/>
-        <ListBox x:Name="ListBoxDirector" HorizontalAlignment="Left" Height="170" Margin="14,309,0,0" VerticalAlignment="Top" Width="150"/>
+        <ListBox x:Name="ListBoxDirector" HorizontalAlignment="Left" Height="170" Margin="14,309,0,0" VerticalAlignment="Top" Width="150" SelectionChanged="ListBoxDirectorSelectionChanged"/>
         <Label Content="Movies" HorizontalAlignment="Left" Margin="14,55,0,0" VerticalAlignment="Top" Height="26" Width="48"/>
         <Label Content="Directors" HorizontalAlignment="Left" Margin="14,277,0,0" VerticalAlignment="Top" Height="26" Width="58"/>
         <Label Content="Movie Database" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" FontSize="18" Height="34" Width="138"/>
@@ -28,7 +28,8 @@
         <Label x:Name="LabelMovieId" Content="ID: " HorizontalAlignment="Left" Margin="230,54,0,0" VerticalAlignment="Top" Height="26" Width="74"/>
         <Label x:Name="LabelDirectorId" Content="ID: " HorizontalAlignment="Left" Margin="248,277,0,0" VerticalAlignment="Top" Height="26" Width="56"/>
         <ComboBox x:Name="ComboBoxDirectors" HorizontalAlignment="Left" Margin="184,175,0,0" VerticalAlignment="Top" Width="120"/>
-        <Button x:Name="ButtonUpdate" Content="Update" HorizontalAlignment="Left" Margin="309,54,0,0" VerticalAlignment="Top" Width="75" Click="ButtonUpdateClick"/>
+        <Button x:Name="ButtonMovieUpdate" Content="Update Movie" HorizontalAlignment="Left" Margin="309,54,0,0" VerticalAlignment="Top" Width="100" Click="ButtonUpdateMovieClick"/>
+        <Button x:Name="ButtonDirectorUpdate" Content="Update Director" HorizontalAlignment="Left" Margin="309,281,0,0" VerticalAlignment="Top" Width="100" Click="ButtonUpdateDirectorClick"/>
 
     </Grid>
 </Window>
