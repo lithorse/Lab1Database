@@ -17,14 +17,14 @@
         <Label Content="Directors" HorizontalAlignment="Left" Margin="14,277,0,0" VerticalAlignment="Top" Height="26" Width="58"/>
         <Label Content="Movie Database" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" FontSize="18" Height="34" Width="138"/>
         <Label Content="Title" HorizontalAlignment="Left" Margin="184,84,0,0" VerticalAlignment="Top" Height="26" Width="32"/>
-        <TextBox x:Name="TextBoxTitle" HorizontalAlignment="Left" Height="23" Margin="184,116,0,0" TextWrapping="Wrap" Text="Movie Title" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="TextBoxTitle" HorizontalAlignment="Left" Height="23" Margin="184,116,0,0" TextWrapping="NoWrap" Text="Movie Title" VerticalAlignment="Top" Width="120"/>
         <Label Content="Director" HorizontalAlignment="Left" Margin="184,144,0,0" VerticalAlignment="Top" Height="26" Width="67"/>
         <Label Content="Movie" HorizontalAlignment="Left" Margin="180,54,0,0" VerticalAlignment="Top" FontWeight="Bold" Height="26" Width="45"/>
         <Label Content="Director" HorizontalAlignment="Left" Margin="178,277,0,0" VerticalAlignment="Top" FontWeight="Bold" Height="26" Width="56"/>
         <Label Content="First Name" HorizontalAlignment="Left" Margin="184,308,0,0" VerticalAlignment="Top" Height="26" Width="67"/>
-        <TextBox x:Name="TextBoxFirstName" HorizontalAlignment="Left" Height="23" Margin="184,339,0,0" TextWrapping="Wrap" Text="First Name" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="TextBoxFirstName" HorizontalAlignment="Left" Height="23" Margin="184,339,0,0" TextWrapping="NoWrap" Text="First Name" VerticalAlignment="Top" Width="120"/>
         <Label Content="Last Name" HorizontalAlignment="Left" Margin="184,366,0,0" VerticalAlignment="Top" Height="26" Width="66"/>
-        <TextBox x:Name="TextBoxLastName" HorizontalAlignment="Left" Height="23" Margin="184,398,0,0" TextWrapping="Wrap" Text="Last Name" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="TextBoxLastName" HorizontalAlignment="Left" Height="23" Margin="184,398,0,0" TextWrapping="NoWrap" Text="Last Name" VerticalAlignment="Top" Width="120"/>
         <Label x:Name="LabelMovieId" Content="ID: " HorizontalAlignment="Left" Margin="230,54,0,0" VerticalAlignment="Top" Height="26" Width="74"/>
         <Label x:Name="LabelDirectorId" Content="ID: " HorizontalAlignment="Left" Margin="248,277,0,0" VerticalAlignment="Top" Height="26" Width="56"/>
         <ComboBox x:Name="ComboBoxDirectors" HorizontalAlignment="Left" Margin="184,175,0,0" VerticalAlignment="Top" Width="120"/>
