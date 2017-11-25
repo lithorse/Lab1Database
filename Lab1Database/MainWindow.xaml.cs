@@ -114,6 +114,7 @@ namespace Lab1Database
                         conn.Open();
                         SqlCommand command = new SqlCommand(@"SELECT FirstName + ' ' + LastName FROM Directors", conn);
                         SqlDataReader reader = command.ExecuteReader();
+
                         Dispatcher.Invoke(() =>
                         {
                             ComboBoxDirectors.Items.Clear();
@@ -234,7 +235,7 @@ namespace Lab1Database
                         {
                             TextBoxLastName.Text = (string)reader[0];
                         });
-                        
+
                     }
                     catch (Exception e)
                     {
@@ -346,6 +347,59 @@ namespace Lab1Database
             });
         }
 
-        
+        private void ButtonAddMovie_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(() =>
+            {
+                using (conn = new SqlConnection(Datastring))
+                {
+                    try
+                    {
+                        conn.Open();
+                        SqlCommand command = new SqlCommand(@"SELECT MAX(Id) FROM Movies", conn);   //To get Movie Id for new Movie
+                        SqlDataReader reader = command.ExecuteReader();
+                        reader.Read();
+                        int newMovieId = (int)reader[0] + 1;
+                        reader.Close();
+                        Dispatcher.Invoke(() =>
+                        {
+                            //Get director Id for movie
+
+                            string director = ComboBoxDirectors.SelectedValue.ToString();
+                            string newMovieTitle = TextBoxTitle.Text;
+
+                            //Add view
+                            command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
+                            command.ExecuteNonQuery();
+                            command = new SqlCommand($@"CREATE VIEW DirectorsView AS SELECT FirstName +' '+ LastName AS FullName, Id FROM Directors", conn); //Create new view
+                            command.ExecuteNonQuery();
+
+                            command = new SqlCommand($@"SELECT Id FROM DirectorsView WHERE FullName LIKE '{director}'", conn);   //
+                            reader = command.ExecuteReader();
+                            reader.Read();
+                            int directorId = (int)reader[0];
+
+                            //Add Movie
+                            reader.Close();
+                            command = new SqlCommand($@"INSERT INTO Movies( Id, Title, DirectorId) VALUES ({newMovieId},'{newMovieTitle}', {directorId})", conn);
+                            command.ExecuteNonQuery();
+                        });
+
+                    }
+                    catch (Exception ee)
+                    {
+                        MessageBox.Show(ee.Message);
+                    }
+                    finally
+                    {
+                        conn.Close();
+                        Dispatcher.Invoke(() =>
+                        {
+                        });
+                        UpdateDirectorListboxes();
+                    }
+                }
+            });
+        }
     }
 }
