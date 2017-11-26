@@ -361,10 +361,11 @@ namespace Lab1Database
                         reader.Read();
                         int newMovieId = (int)reader[0] + 1;
                         reader.Close();
+
+
                         Dispatcher.Invoke(() =>
                         {
                             //Get director Id for movie
-
                             string director = ComboBoxDirectors.SelectedValue.ToString();
                             string newMovieTitle = TextBoxTitle.Text;
 
@@ -374,15 +375,32 @@ namespace Lab1Database
                             command = new SqlCommand($@"CREATE VIEW DirectorsView AS SELECT FirstName +' '+ LastName AS FullName, Id FROM Directors", conn); //Create new view
                             command.ExecuteNonQuery();
 
-                            command = new SqlCommand($@"SELECT Id FROM DirectorsView WHERE FullName LIKE '{director}'", conn);   //
+
+                            //Look for duplicate of title
+                            string movieName = TextBoxTitle.Text;
+                            command = new SqlCommand($@"SELECT COUNT(Title) FROM Movies WHERE Title LIKE '{movieName}'", conn);
                             reader = command.ExecuteReader();
                             reader.Read();
-                            int directorId = (int)reader[0];
-
-                            //Add Movie
+                            int countMovieName = (int)reader[0];
                             reader.Close();
-                            command = new SqlCommand($@"INSERT INTO Movies( Id, Title, DirectorId) VALUES ({newMovieId},'{newMovieTitle}', {directorId})", conn);
-                            command.ExecuteNonQuery();
+
+                            if (countMovieName < 1)
+                            {
+                                command = new SqlCommand($@"SELECT Id FROM DirectorsView WHERE FullName LIKE '{director}'", conn);
+                                reader = command.ExecuteReader();
+                                reader.Read();
+                                int directorId = (int)reader[0];
+                                reader.Close();
+
+                                //Add Movie
+                                command = new SqlCommand($@"INSERT INTO Movies( Id, Title, DirectorId) VALUES ({newMovieId},'{newMovieTitle}', {directorId})", conn);
+                                command.ExecuteNonQuery();
+                            }
+                            else
+                            {
+                                MessageBox.Show($"Duplicate title entry.\n- A movie titled '{newMovieTitle}' by '{director}' already exists.");
+                            }
+
                         });
 
                     }
