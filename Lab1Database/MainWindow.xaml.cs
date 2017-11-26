@@ -53,6 +53,7 @@ namespace Lab1Database
                                 }
                             }
                         });
+                        reader.Close();
                     }
                     catch (Exception e)
                     {
@@ -365,9 +366,8 @@ namespace Lab1Database
 
                         Dispatcher.Invoke(() =>
                         {
-                            //Get director Id for movie
                             string director = ComboBoxDirectors.SelectedValue.ToString();
-                            string newMovieTitle = TextBoxTitle.Text;
+                            string newMovieTitle = TextBoxTitle.Text.Trim();
 
                             //Add view
                             command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
@@ -377,8 +377,7 @@ namespace Lab1Database
 
 
                             //Look for duplicate of title
-                            string movieName = TextBoxTitle.Text;
-                            command = new SqlCommand($@"SELECT COUNT(Title) FROM Movies WHERE Title LIKE '{movieName}'", conn);
+                            command = new SqlCommand($@"SELECT COUNT(Title) FROM Movies WHERE Title LIKE '{newMovieTitle}'", conn);
                             reader = command.ExecuteReader();
                             reader.Read();
                             int countMovieName = (int)reader[0];
@@ -401,6 +400,7 @@ namespace Lab1Database
                                 MessageBox.Show($"Duplicate title entry.\n- A movie titled '{newMovieTitle}' by '{director}' already exists.");
                             }
 
+
                         });
 
                     }
@@ -411,10 +411,57 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
+                        //Dispatcher.Invoke(() =>
+                        //{
+                        //});
+                        UpdateMoviesListboxes(false);
+                    }
+                }
+            });
+        }
+
+        private void ButtonDeleteMovie_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(() =>
+            {
+                using (conn = new SqlConnection(Datastring))
+                {
+                    try
+                    {
+                        conn.Open();
+
                         Dispatcher.Invoke(() =>
                         {
+                            string director = ComboBoxDirectors.SelectedValue.ToString();
+                            string newMovieTitle = TextBoxTitle.Text.Trim();
+
+                            //Add view
+                            SqlCommand command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
+                            command.ExecuteNonQuery();
+                            command = new SqlCommand($@"CREATE VIEW DirectorsView AS SELECT FirstName +' '+ LastName AS FullName, Id FROM Directors", conn); //Create new view
+                            command.ExecuteNonQuery();
+
+                            //Fetch director's Id
+                            command = new SqlCommand($@"SELECT Id FROM DirectorsView WHERE FullName LIKE '{director}'", conn);
+                            SqlDataReader reader = command.ExecuteReader();
+                            reader.Read();
+                            int directorId = (int)reader[0];
+                            reader.Close();
+
+                            //Delete Movie
+                            command = new SqlCommand($@"DELETE FROM Movies WHERE Title LIKE '{newMovieTitle}' AND DirectorId LIKE {directorId}", conn);
+                            command.ExecuteNonQuery();
                         });
-                        UpdateDirectorListboxes();
+
+                    }
+                    catch (Exception ee)
+                    {
+                        MessageBox.Show(ee.Message);
+                    }
+                    finally
+                    {
+                        conn.Close();
+                        //UpdateMoviesListboxes(false);
                     }
                 }
             });

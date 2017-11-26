@@ -31,6 +31,7 @@
         <Button x:Name="ButtonMovieUpdate" Content="Update Movie" HorizontalAlignment="Left" Margin="309,54,0,0" VerticalAlignment="Top" Width="100" Click="ButtonUpdateMovieClick"/>
         <Button x:Name="ButtonDirectorUpdate" Content="Update Director" HorizontalAlignment="Left" Margin="309,281,0,0" VerticalAlignment="Top" Width="100" Click="ButtonUpdateDirectorClick"/>
         <Button x:Name="ButtonAddMovie" Content="Add Movie" HorizontalAlignment="Left" Margin="309,87,0,0" VerticalAlignment="Top" Width="100" Click="ButtonAddMovie_Click"/>
+        <Button Content="Delete" HorizontalAlignment="Left" Margin="309,112,0,0" VerticalAlignment="Top" Width="100" Click="ButtonDeleteMovie_Click"/>
 
     </Grid>
 </Window>
