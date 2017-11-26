@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -142,12 +143,14 @@ namespace Lab1Database
 
         private void ListBoxMovie_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            Dispatcher.Invoke(() =>
+            if (ListBoxMovie.Items.Count != 0) //Needed when list is cleared
             {
-                TextBoxTitle.Text = (string)ListBoxMovie.SelectedItem;
-            });
-            //PrintDataFromMovieId(ListBoxMovie.SelectedIndex + 1);
-            PrintDataFromMovieId(ListBoxMovie.SelectedValue.ToString());
+                Dispatcher.Invoke(() =>
+                {
+                    TextBoxTitle.Text = (string)ListBoxMovie.SelectedItem;
+                });
+                PrintDataFromMovieId(ListBoxMovie.SelectedValue.ToString());
+            }
         }
 
         private void PrintDataFromMovieId(string movieTitle)
@@ -209,7 +212,6 @@ namespace Lab1Database
         private void ListBoxDirectorSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             PrintDataFromDirectorId(ListBoxDirector.SelectedIndex + 1);
-            //PrintDataFromDirectorId(ListBoxDirector.SelectedValue.ToString());
         }
 
         private void PrintDataFromDirectorId(int Id)
@@ -404,7 +406,6 @@ namespace Lab1Database
                                 MessageBox.Show($"Duplicate title entry.\n- A movie titled '{newMovieTitle}' by '{director}' already exists.");
                             }
 
-
                         });
 
                     }
@@ -418,7 +419,7 @@ namespace Lab1Database
                         //Dispatcher.Invoke(() =>
                         //{
                         //});
-                        //UpdateMoviesListboxes(false);
+                        UpdateMoviesListboxes(false);
                     }
                 }
             });
@@ -451,7 +452,6 @@ namespace Lab1Database
                             reader.Read();
                             int directorId = (int)reader[0];
                             reader.Close();
-                            //MessageBox.Show($"Title: {MovieTitle} and Director Id: {directorId}");    //To be removed
 
                             //Delete Movie
                             command = new SqlCommand($@"DELETE FROM Movies WHERE Title LIKE '{MovieTitle}' AND DirectorId LIKE {directorId}", conn);
@@ -466,10 +466,55 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
-                        //UpdateMoviesListboxes(false);
+                        UpdateMoviesListboxes(false);
                     }
                 }
             });
+        }
+
+        private void NewUpdate()    //for removal later when everything is working
+        {
+            Task.Run(() =>
+            {
+                using (conn = new SqlConnection(Datastring))
+                {
+                    try
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            ListBoxMovie.Items.Clear();
+                        });
+                        conn.Open();
+                        SqlCommand command = new SqlCommand(@"SELECT Title FROM Movies", conn);
+                        SqlDataReader reader = command.ExecuteReader();
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            while (reader.Read())
+                            {
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    ListBoxMovie.Items.Add(reader[i]);
+                                }
+                            }
+                            reader.Close();
+                        });
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(e.Message);
+                    }
+                    finally
+                    {
+                        conn.Close();
+                    }
+                }
+            });
+        }
+
+        private void ForceUpdate_click(object sender, RoutedEventArgs e)
+        {
+            NewUpdate();
         }
     }
 }
