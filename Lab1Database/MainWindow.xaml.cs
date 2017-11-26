@@ -146,10 +146,11 @@ namespace Lab1Database
             {
                 TextBoxTitle.Text = (string)ListBoxMovie.SelectedItem;
             });
-            PrintDataFromMovieId(ListBoxMovie.SelectedIndex + 1);
+            //PrintDataFromMovieId(ListBoxMovie.SelectedIndex + 1);
+            PrintDataFromMovieId(ListBoxMovie.SelectedValue.ToString());
         }
 
-        private void PrintDataFromMovieId(int Id)
+        private void PrintDataFromMovieId(string movieTitle)
         {
             Task.Run(() =>
             {
@@ -158,7 +159,7 @@ namespace Lab1Database
                     try
                     {
                         conn.Open();
-                        SqlCommand command = new SqlCommand(@"SELECT DirectorId FROM Movies WHERE Id=" + Id, conn);
+                        SqlCommand command = new SqlCommand($@"SELECT DirectorId FROM Movies WHERE Title LIKE '{movieTitle}'", conn);
                         SqlDataReader reader = command.ExecuteReader();
                         reader.Read();
                         int DirectorId = (int)reader[0];
@@ -183,7 +184,7 @@ namespace Lab1Database
                         {
                             TextBoxLastName.Text = (string)reader[0];
                         });
-                        command = new SqlCommand(@"SELECT Id FROM Movies WHERE Id=" + Id, conn);
+                        command = new SqlCommand($@"SELECT Id FROM Movies WHERE Title LIKE '{movieTitle}'", conn);
                         reader.Close();
                         reader = command.ExecuteReader();
                         reader.Read();
@@ -208,6 +209,7 @@ namespace Lab1Database
         private void ListBoxDirectorSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             PrintDataFromDirectorId(ListBoxDirector.SelectedIndex + 1);
+            //PrintDataFromDirectorId(ListBoxDirector.SelectedValue.ToString());
         }
 
         private void PrintDataFromDirectorId(int Id)
@@ -219,6 +221,8 @@ namespace Lab1Database
                     try
                     {
                         conn.Open();
+
+
                         SqlCommand command = new SqlCommand(@"SELECT FirstName FROM Directors WHERE Id=" + Id, conn);
                         SqlDataReader reader = command.ExecuteReader();
                         reader.Read();
@@ -414,7 +418,7 @@ namespace Lab1Database
                         //Dispatcher.Invoke(() =>
                         //{
                         //});
-                        UpdateMoviesListboxes(false);
+                        //UpdateMoviesListboxes(false);
                     }
                 }
             });
@@ -433,7 +437,7 @@ namespace Lab1Database
                         Dispatcher.Invoke(() =>
                         {
                             string director = ComboBoxDirectors.SelectedValue.ToString();
-                            string newMovieTitle = TextBoxTitle.Text.Trim();
+                            string MovieTitle = TextBoxTitle.Text.Trim();
 
                             //Add view
                             SqlCommand command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
@@ -447,9 +451,10 @@ namespace Lab1Database
                             reader.Read();
                             int directorId = (int)reader[0];
                             reader.Close();
+                            //MessageBox.Show($"Title: {MovieTitle} and Director Id: {directorId}");    //To be removed
 
                             //Delete Movie
-                            command = new SqlCommand($@"DELETE FROM Movies WHERE Title LIKE '{newMovieTitle}' AND DirectorId LIKE {directorId}", conn);
+                            command = new SqlCommand($@"DELETE FROM Movies WHERE Title LIKE '{MovieTitle}' AND DirectorId LIKE {directorId}", conn);
                             command.ExecuteNonQuery();
                         });
 
