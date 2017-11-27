@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -53,6 +54,7 @@ namespace Lab1Database
                                 }
                             }
                         });
+                        reader.Close();
                     }
                     catch (Exception e)
                     {
@@ -141,14 +143,17 @@ namespace Lab1Database
 
         private void ListBoxMovie_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            Dispatcher.Invoke(() =>
+            if (ListBoxMovie.Items.Count != 0) //Needed when list is cleared
             {
-                TextBoxTitle.Text = (string)ListBoxMovie.SelectedItem;
-            });
-            PrintDataFromMovieId(ListBoxMovie.SelectedIndex + 1);
+                Dispatcher.Invoke(() =>
+                {
+                    TextBoxTitle.Text = (string)ListBoxMovie.SelectedItem;
+                });
+                PrintDataFromMovieId(ListBoxMovie.SelectedValue.ToString());
+            }
         }
 
-        private void PrintDataFromMovieId(int Id)
+        private void PrintDataFromMovieId(string movieTitle)
         {
             Task.Run(() =>
             {
@@ -157,7 +162,7 @@ namespace Lab1Database
                     try
                     {
                         conn.Open();
-                        SqlCommand command = new SqlCommand(@"SELECT DirectorId FROM Movies WHERE Id=" + Id, conn);
+                        SqlCommand command = new SqlCommand($@"SELECT DirectorId FROM Movies WHERE Title LIKE '{movieTitle}'", conn);
                         SqlDataReader reader = command.ExecuteReader();
                         reader.Read();
                         int DirectorId = (int)reader[0];
@@ -182,7 +187,7 @@ namespace Lab1Database
                         {
                             TextBoxLastName.Text = (string)reader[0];
                         });
-                        command = new SqlCommand(@"SELECT Id FROM Movies WHERE Id=" + Id, conn);
+                        command = new SqlCommand($@"SELECT Id FROM Movies WHERE Title LIKE '{movieTitle}'", conn);
                         reader.Close();
                         reader = command.ExecuteReader();
                         reader.Read();
@@ -218,6 +223,8 @@ namespace Lab1Database
                     try
                     {
                         conn.Open();
+
+
                         SqlCommand command = new SqlCommand(@"SELECT FirstName FROM Directors WHERE Id=" + Id, conn);
                         SqlDataReader reader = command.ExecuteReader();
                         reader.Read();
@@ -361,12 +368,12 @@ namespace Lab1Database
                         reader.Read();
                         int newMovieId = (int)reader[0] + 1;
                         reader.Close();
+
+
                         Dispatcher.Invoke(() =>
                         {
-                            //Get director Id for movie
-
                             string director = ComboBoxDirectors.SelectedValue.ToString();
-                            string newMovieTitle = TextBoxTitle.Text;
+                            string newMovieTitle = TextBoxTitle.Text.Trim();
 
                             //Add view
                             command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
@@ -374,14 +381,80 @@ namespace Lab1Database
                             command = new SqlCommand($@"CREATE VIEW DirectorsView AS SELECT FirstName +' '+ LastName AS FullName, Id FROM Directors", conn); //Create new view
                             command.ExecuteNonQuery();
 
-                            command = new SqlCommand($@"SELECT Id FROM DirectorsView WHERE FullName LIKE '{director}'", conn);   //
+
+                            //Look for duplicate of title
+                            command = new SqlCommand($@"SELECT COUNT(Title) FROM Movies WHERE Title LIKE '{newMovieTitle}'", conn);
                             reader = command.ExecuteReader();
                             reader.Read();
-                            int directorId = (int)reader[0];
-
-                            //Add Movie
+                            int countMovieName = (int)reader[0];
                             reader.Close();
-                            command = new SqlCommand($@"INSERT INTO Movies( Id, Title, DirectorId) VALUES ({newMovieId},'{newMovieTitle}', {directorId})", conn);
+
+                            if (countMovieName < 1)
+                            {
+                                command = new SqlCommand($@"SELECT Id FROM DirectorsView WHERE FullName LIKE '{director}'", conn);
+                                reader = command.ExecuteReader();
+                                reader.Read();
+                                int directorId = (int)reader[0];
+                                reader.Close();
+
+                                //Add Movie
+                                command = new SqlCommand($@"INSERT INTO Movies( Id, Title, DirectorId) VALUES ({newMovieId},'{newMovieTitle}', {directorId})", conn);
+                                command.ExecuteNonQuery();
+                            }
+                            else
+                            {
+                                MessageBox.Show($"Duplicate title entry.\n- A movie titled '{newMovieTitle}' by '{director}' already exists.");
+                            }
+
+                        });
+
+                    }
+                    catch (Exception ee)
+                    {
+                        MessageBox.Show(ee.Message);
+                    }
+                    finally
+                    {
+                        conn.Close();
+                        //Dispatcher.Invoke(() =>
+                        //{
+                        //});
+                        UpdateMoviesListboxes(false);
+                    }
+                }
+            });
+        }
+
+        private void ButtonDeleteMovie_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(() =>
+            {
+                using (conn = new SqlConnection(Datastring))
+                {
+                    try
+                    {
+                        conn.Open();
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            string director = ComboBoxDirectors.SelectedValue.ToString();
+                            string MovieTitle = TextBoxTitle.Text.Trim();
+
+                            //Add view
+                            SqlCommand command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
+                            command.ExecuteNonQuery();
+                            command = new SqlCommand($@"CREATE VIEW DirectorsView AS SELECT FirstName +' '+ LastName AS FullName, Id FROM Directors", conn); //Create new view
+                            command.ExecuteNonQuery();
+
+                            //Fetch director's Id
+                            command = new SqlCommand($@"SELECT Id FROM DirectorsView WHERE FullName LIKE '{director}'", conn);
+                            SqlDataReader reader = command.ExecuteReader();
+                            reader.Read();
+                            int directorId = (int)reader[0];
+                            reader.Close();
+
+                            //Delete Movie
+                            command = new SqlCommand($@"DELETE FROM Movies WHERE Title LIKE '{MovieTitle}' AND DirectorId LIKE {directorId}", conn);
                             command.ExecuteNonQuery();
                         });
 
@@ -393,13 +466,55 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
-                        Dispatcher.Invoke(() =>
-                        {
-                        });
-                        UpdateDirectorListboxes();
+                        UpdateMoviesListboxes(false);
                     }
                 }
             });
+        }
+
+        private void NewUpdate()    //for removal later when everything is working
+        {
+            Task.Run(() =>
+            {
+                using (conn = new SqlConnection(Datastring))
+                {
+                    try
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            ListBoxMovie.Items.Clear();
+                        });
+                        conn.Open();
+                        SqlCommand command = new SqlCommand(@"SELECT Title FROM Movies", conn);
+                        SqlDataReader reader = command.ExecuteReader();
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            while (reader.Read())
+                            {
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    ListBoxMovie.Items.Add(reader[i]);
+                                }
+                            }
+                            reader.Close();
+                        });
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show(e.Message);
+                    }
+                    finally
+                    {
+                        conn.Close();
+                    }
+                }
+            });
+        }
+
+        private void ForceUpdate_click(object sender, RoutedEventArgs e)
+        {
+            NewUpdate();
         }
     }
 }
