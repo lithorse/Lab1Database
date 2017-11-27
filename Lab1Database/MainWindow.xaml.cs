@@ -91,6 +91,7 @@ namespace Lab1Database
                                 }
                             }
                         });
+                        reader.Close();
                     }
                     catch (Exception e)
                     {
@@ -127,7 +128,12 @@ namespace Lab1Database
                                     ComboBoxDirectors.Items.Add(reader[i]);
                                 }
                             }
+                            if (ComboBoxDirectors.Items.Count > 0)
+                            {
+                                ComboBoxDirectors.SelectedIndex = 0;
+                            }
                         });
+                        reader.Close();
                     }
                     catch (Exception e)
                     {
@@ -149,11 +155,17 @@ namespace Lab1Database
                 {
                     TextBoxTitle.Text = (string)ListBoxMovie.SelectedItem;
                 });
-                PrintDataFromMovieId(ListBoxMovie.SelectedValue.ToString());
+                PrintDataFromMovieTitle(ListBoxMovie.SelectedValue.ToString());
             }
+            Dispatcher.Invoke(() =>
+            {
+                bool nothingSelected = ListBoxMovie.SelectedIndex != -1;
+                ButtonMovieDelete.IsEnabled = nothingSelected;
+                ButtonMovieUpdate.IsEnabled = nothingSelected;
+            });
         }
 
-        private void PrintDataFromMovieId(string movieTitle)
+        private void PrintDataFromMovieTitle(string movieTitle)
         {
             Task.Run(() =>
             {
@@ -211,10 +223,17 @@ namespace Lab1Database
 
         private void ListBoxDirectorSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            PrintDataFromDirectorId(ListBoxDirector.SelectedIndex + 1);
+            if (ListBoxDirector.SelectedIndex >= 0)
+                PrintDataFromDirectorName((string)ListBoxDirector.SelectedItem);
+            Dispatcher.Invoke(() =>
+            {
+                bool nothingSelected = ListBoxDirector.SelectedIndex != -1;
+                ButtonDirectorDelete.IsEnabled = nothingSelected;
+                ButtonDirectorUpdate.IsEnabled = nothingSelected;
+            });
         }
 
-        private void PrintDataFromDirectorId(int Id)
+        private void PrintDataFromDirectorName(string DirectorFullName)
         {
             Task.Run(() =>
             {
@@ -223,10 +242,18 @@ namespace Lab1Database
                     try
                     {
                         conn.Open();
-
-
-                        SqlCommand command = new SqlCommand(@"SELECT FirstName FROM Directors WHERE Id=" + Id, conn);
+                        SqlCommand command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
+                        command.ExecuteNonQuery();
+                        command = new SqlCommand($@"CREATE VIEW DirectorsView AS SELECT FirstName +' '+ LastName AS FullName, Id FROM Directors", conn); //Create new view
+                        command.ExecuteNonQuery();
+                        command = new SqlCommand(@"SELECT Id FROM DirectorsView WHERE FullName = '" + DirectorFullName + "'", conn);
                         SqlDataReader reader = command.ExecuteReader();
+                        reader.Read();
+                        int Id = (int)reader[0];
+                        reader.Close();
+
+                        command = new SqlCommand(@"SELECT FirstName FROM Directors WHERE Id=" + Id, conn);
+                        reader = command.ExecuteReader();
                         reader.Read();
                         string firstName = (string)reader[0];
                         Dispatcher.Invoke(() =>
@@ -258,11 +285,10 @@ namespace Lab1Database
 
         private void ButtonUpdateMovieClick(object sender, RoutedEventArgs e)
         {
-            Match firstName = Regex.Match(ComboBoxDirectors.SelectedItem.ToString(), @"\w+");
-            UpdateMovie((string)ListBoxMovie.SelectedItem, TextBoxTitle.Text, firstName.Value);
+            UpdateMovie((string)ListBoxMovie.SelectedItem, TextBoxTitle.Text, ComboBoxDirectors.SelectedItem.ToString());
         }
 
-        private void UpdateMovie(string title, string newTitle, string DirectorFirstName)
+        private void UpdateMovie(string title, string newTitle, string DirectorFullName)
         {
             Task.Run(() =>
             {
@@ -270,8 +296,14 @@ namespace Lab1Database
                 {
                     try
                     {
+                        DisableInput();
                         conn.Open();
-                        SqlCommand command = new SqlCommand(@"SELECT Id FROM Directors WHERE FirstName = '" + DirectorFirstName + "'", conn);
+                        SqlCommand command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
+                        command.ExecuteNonQuery();
+                        command = new SqlCommand($@"CREATE VIEW DirectorsView AS SELECT FirstName +' '+ LastName AS FullName, Id FROM Directors", conn); //Create new view
+                        command.ExecuteNonQuery();
+
+                        command = new SqlCommand(@"SELECT Id FROM DirectorsView WHERE FullName = '" + DirectorFullName + "'", conn);
                         SqlDataReader reader = command.ExecuteReader();
                         reader.Read();
                         int NewDirectorId = (int)reader[0];
@@ -297,6 +329,7 @@ namespace Lab1Database
                                 ListBoxMovie.Items.RemoveAt(ListBoxMovie.Items.IndexOf(title));
                             });
                         }
+                        EnableInput();
                     }
                 }
             });
@@ -304,7 +337,8 @@ namespace Lab1Database
 
         private void ButtonUpdateDirectorClick(object sender, RoutedEventArgs e)
         {
-            UpdateDirector((string)ListBoxDirector.SelectedItem, TextBoxFirstName.Text, TextBoxLastName.Text);
+            if ((string)ListBoxDirector.SelectedItem != TextBoxFirstName.Text + " " + TextBoxLastName.Text)
+                UpdateDirector((string)ListBoxDirector.SelectedItem, TextBoxFirstName.Text, TextBoxLastName.Text);
         }
 
         private void UpdateDirector(string directorFullName, string newFirstName, string newLastName)
@@ -315,9 +349,14 @@ namespace Lab1Database
                 {
                     try
                     {
+                        DisableInput();
                         conn.Open();
-                        Match oldFirstName = Regex.Match(directorFullName, @"\w+");
-                        SqlCommand command = new SqlCommand(@"SELECT Id FROM Directors WHERE FirstName = '" + oldFirstName.Value + "'", conn);
+                        SqlCommand command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
+                        command.ExecuteNonQuery();
+                        command = new SqlCommand($@"CREATE VIEW DirectorsView AS SELECT FirstName +' '+ LastName AS FullName, Id FROM Directors", conn); //Create new view
+                        command.ExecuteNonQuery();
+
+                        command = new SqlCommand(@"SELECT Id FROM DirectorsView WHERE FullName = '" + directorFullName + "'", conn);
                         SqlDataReader reader = command.ExecuteReader();
                         reader.Read();
                         int directorId = (int)reader[0];
@@ -334,7 +373,9 @@ namespace Lab1Database
                         {
                             ComboBoxDirectors.Items.Insert(ComboBoxDirectors.Items.IndexOf(directorFullName), (string)reader[0]);
                             ComboBoxDirectors.Items.RemoveAt(ComboBoxDirectors.Items.IndexOf(directorFullName));
+                            ComboBoxDirectors.SelectedIndex = ComboBoxDirectors.Items.IndexOf((string)reader[0]);
                         });
+                        reader.Close();
                     }
                     catch (Exception e)
                     {
@@ -349,6 +390,7 @@ namespace Lab1Database
                             ListBoxDirector.SelectedIndex = ListBoxDirector.Items.IndexOf(directorFullName) - 1;
                             ListBoxDirector.Items.RemoveAt(ListBoxDirector.Items.IndexOf(directorFullName));
                         });
+                        EnableInput();
                     }
                 }
             });
@@ -356,12 +398,18 @@ namespace Lab1Database
 
         private void ButtonAddMovie_Click(object sender, RoutedEventArgs e)
         {
+            AddMovie(TextBoxTitle.Text.Trim());
+        }
+
+        private void AddMovie(string newMovieTitle)
+        {
             Task.Run(() =>
             {
                 using (conn = new SqlConnection(Datastring))
                 {
                     try
                     {
+                        DisableInput();
                         conn.Open();
                         SqlCommand command = new SqlCommand(@"SELECT MAX(Id) FROM Movies", conn);   //To get Movie Id for new Movie
                         SqlDataReader reader = command.ExecuteReader();
@@ -373,7 +421,6 @@ namespace Lab1Database
                         Dispatcher.Invoke(() =>
                         {
                             string director = ComboBoxDirectors.SelectedValue.ToString();
-                            string newMovieTitle = TextBoxTitle.Text.Trim();
 
                             //Add view
                             command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
@@ -403,23 +450,25 @@ namespace Lab1Database
                             }
                             else
                             {
-                                MessageBox.Show($"Duplicate title entry.\n- A movie titled '{newMovieTitle}' by '{director}' already exists.");
+                                MessageBox.Show($"Duplicate title entry.\n- A movie titled '{newMovieTitle}' already exists.");
                             }
 
                         });
 
                     }
-                    catch (Exception ee)
+                    catch (Exception e)
                     {
-                        MessageBox.Show(ee.Message);
+                        MessageBox.Show(e.Message);
                     }
                     finally
                     {
                         conn.Close();
-                        //Dispatcher.Invoke(() =>
-                        //{
-                        //});
                         UpdateMoviesListboxes(false);
+                        Dispatcher.Invoke(() =>
+                        {
+                            ListBoxMovie.SelectedItem = newMovieTitle;
+                        });
+                        EnableInput();
                     }
                 }
             });
@@ -427,18 +476,23 @@ namespace Lab1Database
 
         private void ButtonDeleteMovie_Click(object sender, RoutedEventArgs e)
         {
+            DeleteMovie();
+        }
+
+        private void DeleteMovie()
+        {
             Task.Run(() =>
             {
                 using (conn = new SqlConnection(Datastring))
                 {
                     try
                     {
+                        DisableInput();
                         conn.Open();
-
                         Dispatcher.Invoke(() =>
                         {
                             string director = ComboBoxDirectors.SelectedValue.ToString();
-                            string MovieTitle = TextBoxTitle.Text.Trim();
+                            string MovieTitle = (string)ListBoxMovie.SelectedItem;
 
                             //Add view
                             SqlCommand command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
@@ -459,14 +513,15 @@ namespace Lab1Database
                         });
 
                     }
-                    catch (Exception ee)
+                    catch (Exception e)
                     {
-                        MessageBox.Show(ee.Message);
+                        MessageBox.Show(e.Message);
                     }
                     finally
                     {
                         conn.Close();
                         UpdateMoviesListboxes(false);
+                        EnableInput();
                     }
                 }
             });
@@ -484,6 +539,7 @@ namespace Lab1Database
                         {
                             ListBoxMovie.Items.Clear();
                         });
+                        DisableInput();
                         conn.Open();
                         SqlCommand command = new SqlCommand(@"SELECT Title FROM Movies", conn);
                         SqlDataReader reader = command.ExecuteReader();
@@ -507,14 +563,193 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
+                        EnableInput();
                     }
                 }
             });
         }
 
-        private void ForceUpdate_click(object sender, RoutedEventArgs e)
+        private void ButtonDirectorAddClick(object sender, RoutedEventArgs e)
         {
-            NewUpdate();
+            AddDirector(TextBoxFirstName.Text.Trim(), TextBoxLastName.Text.Trim());
+        }
+
+        private void AddDirector(string newFirstName, string newLastName)
+        {
+            Task.Run(() =>
+            {
+                using (conn = new SqlConnection(Datastring))
+                {
+                    try
+                    {
+                        DisableInput();
+                        conn.Open();
+                        SqlCommand command = new SqlCommand(@"SELECT MAX(Id) FROM Directors", conn);   //To get Movie Id for new Movie
+                        SqlDataReader reader = command.ExecuteReader();
+                        reader.Read();
+                        int newDirectorId = (int)reader[0] + 1;
+                        reader.Close();
+
+                        Dispatcher.Invoke(() =>
+                        {
+
+
+                            //Look for duplicate of title
+                            command = new SqlCommand($@"SELECT COUNT(Id) FROM Directors WHERE FirstName LIKE '{newFirstName}' AND LastName LIKE '{newLastName}'", conn);
+                            reader = command.ExecuteReader();
+                            reader.Read();
+
+                            bool nameExists = (int)reader[0] > 0;
+
+                            reader.Close();
+
+                            if (!nameExists)
+                            {
+                                //Add Director
+                                command = new SqlCommand($@"INSERT INTO Directors( Id, FirstName, LastName) VALUES ({newDirectorId},'{newFirstName}', '{newLastName}')", conn);
+                                command.ExecuteNonQuery();
+                                Dispatcher.Invoke(() =>
+                                {
+                                    ListBoxDirector.Items.Add(newFirstName + " " + newLastName);
+                                    ComboBoxDirectors.Items.Add(newFirstName + " " + newLastName);
+                                });
+                            }
+                            else
+                            {
+                                MessageBox.Show($"Duplicate title entry.\n- A director named {newFirstName} {newLastName} already exists.");
+                            }
+
+                        });
+
+                    }
+                    catch (Exception ee)
+                    {
+                        MessageBox.Show(ee.Message);
+                    }
+                    finally
+                    {
+                        conn.Close();
+                        EnableInput();
+                        Dispatcher.Invoke(() =>
+                        {
+                            ListBoxDirector.SelectedItem = newFirstName + " " + newLastName;
+                        });
+                    }
+                }
+            });
+        }
+
+        private void ButtonDirectorDeleteClick(object sender, RoutedEventArgs e)
+        {
+            DeleteDirector((string)ListBoxDirector.SelectedItem);
+        }
+
+        private void DeleteDirector(string director)
+        {
+            Task.Run(() =>
+            {
+                using (conn = new SqlConnection(Datastring))
+                {
+                    try
+                    {
+                        DisableInput();
+                        conn.Open();
+                        Dispatcher.Invoke(() =>
+                        {
+                            //Add view
+                            SqlCommand command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
+                            command.ExecuteNonQuery();
+                            command = new SqlCommand($@"CREATE VIEW DirectorsView AS SELECT FirstName +' '+ LastName AS FullName, Id FROM Directors", conn); //Create new view
+                            command.ExecuteNonQuery();
+
+                            //Fetch director's Id
+                            command = new SqlCommand($@"SELECT Id FROM DirectorsView WHERE FullName LIKE '{director}'", conn);
+                            SqlDataReader reader = command.ExecuteReader();
+                            reader.Read();
+                            int directorId = (int)reader[0];
+                            reader.Close();
+
+                            //Delete Director
+                            command = new SqlCommand($@"DELETE FROM Directors WHERE Id = {directorId}", conn);
+                            command.ExecuteNonQuery();
+                        });
+
+                    }
+                    catch (Exception ee)
+                    {
+                        MessageBox.Show(ee.Message);
+                    }
+                    finally
+                    {
+                        conn.Close();
+                        EnableInput();
+                        Dispatcher.Invoke(() =>
+                        {
+                            ListBoxDirector.Items.RemoveAt(ListBoxDirector.Items.IndexOf(director));
+                            if (ComboBoxDirectors.SelectedIndex == ComboBoxDirectors.Items.IndexOf(director))
+                                ComboBoxDirectors.SelectedIndex = 0;
+                            ComboBoxDirectors.Items.RemoveAt(ComboBoxDirectors.Items.IndexOf(director));
+                            ListBoxDirector.SelectedIndex = -1;
+                        });
+                    }
+                }
+            });
+        }
+
+        private void DisableInput()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                ListBoxMovie.IsEnabled = false;
+                ListBoxDirector.IsEnabled = false;
+                ButtonMovieUpdate.IsEnabled = false;
+                ButtonAddMovie.IsEnabled = false;
+                ButtonMovieDelete.IsEnabled = false;
+                ButtonDirectorUpdate.IsEnabled = false;
+                ButtonDirectorAdd.IsEnabled = false;
+                ButtonDirectorDelete.IsEnabled = false;
+                TextBoxTitle.IsEnabled = false;
+                TextBoxFirstName.IsEnabled = false;
+                TextBoxLastName.IsEnabled = false;
+                ComboBoxDirectors.IsEnabled = false;
+            });
+        }
+
+        private void EnableInput()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                ListBoxMovie.IsEnabled = true;
+                ListBoxDirector.IsEnabled = true;
+                ButtonAddMovie.IsEnabled = TextBoxTitle.Text != "";
+                ButtonDirectorAdd.IsEnabled = TextBoxFirstName.Text != "" && TextBoxLastName.Text != "";
+                TextBoxTitle.IsEnabled = true;
+                TextBoxFirstName.IsEnabled = true;
+                TextBoxLastName.IsEnabled = true;
+                ComboBoxDirectors.IsEnabled = true;
+            });
+        }
+
+        private void TextBoxTitleTextChanged(object sender, TextChangedEventArgs e)
+        {
+            bool hasNoText = String.IsNullOrEmpty(TextBoxTitle.Text);
+            if (ButtonAddMovie != null && ButtonMovieUpdate != null)
+            {
+                ButtonAddMovie.IsEnabled = !hasNoText;
+                if (ListBoxMovie.SelectedIndex != -1)
+                    ButtonMovieUpdate.IsEnabled = !hasNoText;
+            }
+        }
+
+        private void TextBoxFirstNameTextChanged(object sender, TextChangedEventArgs e)
+        {
+            bool hasNoText = String.IsNullOrEmpty(TextBoxFirstName.Text) && String.IsNullOrEmpty(TextBoxLastName.Text);
+            if (ButtonDirectorAdd != null && ButtonDirectorUpdate != null)
+            {
+                ButtonDirectorAdd.IsEnabled = !hasNoText;
+                if (ListBoxDirector.SelectedIndex != -1)
+                    ButtonDirectorUpdate.IsEnabled = !hasNoText;
+            }
         }
     }
 }
