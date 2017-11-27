@@ -24,7 +24,7 @@
         <Label Content="First Name" HorizontalAlignment="Left" Margin="184,308,0,0" VerticalAlignment="Top" Height="26" Width="67"/>
         <TextBox x:Name="TextBoxFirstName" HorizontalAlignment="Left" Height="23" Margin="184,339,0,0" TextWrapping="NoWrap" Text="First Name" VerticalAlignment="Top" Width="120" TextChanged="TextBoxFirstNameTextChanged"/>
         <Label Content="Last Name" HorizontalAlignment="Left" Margin="184,366,0,0" VerticalAlignment="Top" Height="26" Width="66"/>
-        <TextBox x:Name="TextBoxLastName" HorizontalAlignment="Left" Height="23" Margin="184,398,0,0" TextWrapping="NoWrap" Text="Last Name" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="TextBoxLastName" HorizontalAlignment="Left" Height="23" Margin="184,398,0,0" TextWrapping="NoWrap" Text="Last Name" VerticalAlignment="Top" Width="120" TextChanged="textBoxLastNameChanged"/>
         <Label x:Name="LabelMovieId" Content="ID: " HorizontalAlignment="Left" Margin="230,54,0,0" VerticalAlignment="Top" Height="26" Width="74"/>
         <Label x:Name="LabelDirectorId" Content="ID: " HorizontalAlignment="Left" Margin="248,277,0,0" VerticalAlignment="Top" Height="26" Width="56"/>
         <ComboBox x:Name="ComboBoxDirectors" HorizontalAlignment="Left" Margin="184,175,0,0" VerticalAlignment="Top" Width="120"/>

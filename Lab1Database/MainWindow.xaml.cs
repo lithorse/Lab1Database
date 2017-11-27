@@ -159,6 +159,7 @@ namespace Lab1Database
             }
             Dispatcher.Invoke(() =>
             {
+                //ListBoxDirector.SelectedIndex = -1;
                 bool nothingSelected = ListBoxMovie.SelectedIndex != -1;
                 ButtonMovieDelete.IsEnabled = nothingSelected;
                 ButtonMovieUpdate.IsEnabled = nothingSelected;
@@ -227,6 +228,7 @@ namespace Lab1Database
                 PrintDataFromDirectorName((string)ListBoxDirector.SelectedItem);
             Dispatcher.Invoke(() =>
             {
+                //ListBoxMovie.SelectedIndex = -1;
                 bool nothingSelected = ListBoxDirector.SelectedIndex != -1;
                 ButtonDirectorDelete.IsEnabled = nothingSelected;
                 ButtonDirectorUpdate.IsEnabled = nothingSelected;
@@ -320,6 +322,7 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
+                        EnableInput();
                         if (title != newTitle)
                         {
                             Dispatcher.Invoke(() =>
@@ -329,7 +332,11 @@ namespace Lab1Database
                                 ListBoxMovie.Items.RemoveAt(ListBoxMovie.Items.IndexOf(title));
                             });
                         }
-                        EnableInput();
+                        Dispatcher.Invoke(() =>
+                        {
+                            ButtonMovieUpdate.IsEnabled = true;
+                            ButtonMovieDelete.IsEnabled = true;
+                        });
                     }
                 }
             });
@@ -668,10 +675,34 @@ namespace Lab1Database
                             reader.Read();
                             int directorId = (int)reader[0];
                             reader.Close();
+                            //Check if movie dependent on director
+                            command = new SqlCommand($@"SELECT COUNT(DirectorId) FROM Movies WHERE DirectorId LIKE {directorId}", conn);
+                            reader = command.ExecuteReader();
+                            reader.Read();
+                            int movieExists = (int)reader[0];
+                            reader.Close();
 
-                            //Delete Director
-                            command = new SqlCommand($@"DELETE FROM Directors WHERE Id = {directorId}", conn);
-                            command.ExecuteNonQuery();
+
+                            if (movieExists < 1)
+                            {
+                                //Delete Director
+                                command = new SqlCommand($@"DELETE FROM Directors WHERE Id = {directorId}", conn);
+                                command.ExecuteNonQuery();
+                                Dispatcher.Invoke(() =>
+                                {
+                                    ListBoxDirector.Items.RemoveAt(ListBoxDirector.Items.IndexOf(director));
+                                    if (ComboBoxDirectors.SelectedIndex == ComboBoxDirectors.Items.IndexOf(director))
+                                        ComboBoxDirectors.SelectedIndex = 0;
+                                    ComboBoxDirectors.Items.RemoveAt(ComboBoxDirectors.Items.IndexOf(director));
+                                    ListBoxDirector.SelectedIndex = -1;
+                                });
+                            }
+                            else
+                            {
+                                MessageBox.Show("Can't delete a director with a movie dependent.");
+                                ButtonDirectorUpdate.IsEnabled = true;
+                                ButtonDirectorDelete.IsEnabled = true;
+                            }
                         });
 
                     }
@@ -683,14 +714,7 @@ namespace Lab1Database
                     {
                         conn.Close();
                         EnableInput();
-                        Dispatcher.Invoke(() =>
-                        {
-                            ListBoxDirector.Items.RemoveAt(ListBoxDirector.Items.IndexOf(director));
-                            if (ComboBoxDirectors.SelectedIndex == ComboBoxDirectors.Items.IndexOf(director))
-                                ComboBoxDirectors.SelectedIndex = 0;
-                            ComboBoxDirectors.Items.RemoveAt(ComboBoxDirectors.Items.IndexOf(director));
-                            ListBoxDirector.SelectedIndex = -1;
-                        });
+
                     }
                 }
             });
@@ -743,12 +767,29 @@ namespace Lab1Database
 
         private void TextBoxFirstNameTextChanged(object sender, TextChangedEventArgs e)
         {
-            bool hasNoText = String.IsNullOrEmpty(TextBoxFirstName.Text) && String.IsNullOrEmpty(TextBoxLastName.Text);
-            if (ButtonDirectorAdd != null && ButtonDirectorUpdate != null)
+            if (TextBoxLastName != null)
             {
-                ButtonDirectorAdd.IsEnabled = !hasNoText;
-                if (ListBoxDirector.SelectedIndex != -1)
-                    ButtonDirectorUpdate.IsEnabled = !hasNoText;
+                bool hasNoText = String.IsNullOrEmpty(TextBoxFirstName.Text) || String.IsNullOrEmpty(TextBoxLastName.Text);
+                if (ButtonDirectorAdd != null && ButtonDirectorUpdate != null)
+                {
+                    ButtonDirectorAdd.IsEnabled = !hasNoText;
+                    if (ListBoxDirector.SelectedIndex != -1)
+                        ButtonDirectorUpdate.IsEnabled = !hasNoText;
+                }
+            }
+        }
+
+        private void textBoxLastNameChanged(object sender, TextChangedEventArgs e)
+        {
+            if (TextBoxFirstName != null)
+            {
+                bool hasNoText = String.IsNullOrEmpty(TextBoxFirstName.Text) || String.IsNullOrEmpty(TextBoxLastName.Text);
+                if (ButtonDirectorAdd != null && ButtonDirectorUpdate != null)
+                {
+                    ButtonDirectorAdd.IsEnabled = !hasNoText;
+                    if (ListBoxDirector.SelectedIndex != -1)
+                        ButtonDirectorUpdate.IsEnabled = !hasNoText;
+                }
             }
         }
     }
