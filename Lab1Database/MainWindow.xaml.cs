@@ -30,7 +30,7 @@ namespace Lab1Database
         }
 
         private SqlConnection conn;
-        private String Datastring = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=FilmDatabase;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+        private const String Datastring = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=FilmDatabase;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
         private void UpdateDirectorListboxes()
         {
@@ -175,6 +175,7 @@ namespace Lab1Database
                 {
                     try
                     {
+                        DisableInput();
                         conn.Open();
                         SqlCommand command = new SqlCommand($@"SELECT DirectorId FROM Movies WHERE Title LIKE '{movieTitle}'", conn);
                         SqlDataReader reader = command.ExecuteReader();
@@ -220,6 +221,12 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
+                        EnableInput();
+                        Dispatcher.Invoke(() =>
+                        {
+                            var listBoxItem = (ListBoxItem)ListBoxMovie.ItemContainerGenerator.ContainerFromItem(ListBoxMovie.SelectedItem);
+                            listBoxItem.Focus();
+                        });
                     }
                 }
             });
@@ -246,6 +253,7 @@ namespace Lab1Database
                 {
                     try
                     {
+                        DisableInput();
                         conn.Open();
                         SqlCommand command = new SqlCommand($@"DROP VIEW IF EXISTS DirectorsView ", conn); //Drop old view
                         command.ExecuteNonQuery();
@@ -283,6 +291,12 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
+                        EnableInput();
+                        Dispatcher.Invoke(() =>
+                        {
+                            var listBoxItem = (ListBoxItem)ListBoxDirector.ItemContainerGenerator.ContainerFromItem(ListBoxDirector.SelectedItem);
+                            listBoxItem.Focus();
+                        });
                     }
                 }
             });
@@ -379,7 +393,7 @@ namespace Lab1Database
         {
             Task.Run(() =>
             {
-                bool success = false;
+                //bool success = false;
                 using (conn = new SqlConnection(Datastring))
                 {
                     try
@@ -425,7 +439,7 @@ namespace Lab1Database
                                 ListBoxDirector.Items.Insert(ListBoxDirector.Items.IndexOf(directorFullName), newFirstName + " " + newLastName);
                                 ListBoxDirector.Items.RemoveAt(ListBoxDirector.Items.IndexOf(directorFullName));
                             });
-                            success = true;
+                            //success = true;
                         }
                         else
                             MessageBox.Show("Unable to update director. Director with that name already exists.");
@@ -437,13 +451,13 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
-                        if (success)
-                        {
+                        //if (success)
+                        //{
                             Dispatcher.Invoke(() =>
                             {
                                 ListBoxDirector.SelectedIndex = ListBoxDirector.Items.IndexOf(newFirstName + " " + newLastName);
                             });
-                        }
+                        //}
                         EnableInput();
                     }
                 }
