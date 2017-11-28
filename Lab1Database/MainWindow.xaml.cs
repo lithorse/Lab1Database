@@ -155,7 +155,8 @@ namespace Lab1Database
                 {
                     TextBoxTitle.Text = (string)ListBoxMovie.SelectedItem;
                 });
-                PrintDataFromMovieTitle(ListBoxMovie.SelectedValue.ToString());
+                if (ListBoxMovie.SelectedIndex != -1)
+                    PrintDataFromMovieTitle(ListBoxMovie.SelectedValue.ToString());
             }
             Dispatcher.Invoke(() =>
             {
@@ -182,12 +183,12 @@ namespace Lab1Database
                         Dispatcher.Invoke(() =>
                         {
                             LabelDirectorId.Content = "ID: " + DirectorId;
-                            ComboBoxDirectors.SelectedIndex = DirectorId - 1;
                         });
                         command = new SqlCommand(@"SELECT FirstName FROM Directors WHERE Id='" + DirectorId + "'", conn);
                         reader.Close();
                         reader = command.ExecuteReader();
                         reader.Read();
+                        string fullName = (string)reader[0];
                         Dispatcher.Invoke(() =>
                         {
                             TextBoxFirstName.Text = (string)reader[0];
@@ -196,6 +197,7 @@ namespace Lab1Database
                         reader.Close();
                         reader = command.ExecuteReader();
                         reader.Read();
+                        fullName += " " + (string)reader[0];
                         Dispatcher.Invoke(() =>
                         {
                             TextBoxLastName.Text = (string)reader[0];
@@ -208,6 +210,7 @@ namespace Lab1Database
                         Dispatcher.Invoke(() =>
                         {
                             LabelMovieId.Content = "ID: " + MovieId;
+                            ComboBoxDirectors.SelectedItem = fullName;
                         });
                     }
                     catch (Exception e)
@@ -304,16 +307,48 @@ namespace Lab1Database
                         command.ExecuteNonQuery();
                         command = new SqlCommand($@"CREATE VIEW DirectorsView AS SELECT FirstName +' '+ LastName AS FullName, Id FROM Directors", conn); //Create new view
                         command.ExecuteNonQuery();
+                        SqlDataReader reader;
+                        if (title != newTitle)
+                        {
+                            command = new SqlCommand($@"SELECT COUNT(Title) FROM Movies WHERE Title = '{newTitle}'", conn);
+                            reader = command.ExecuteReader();
+                            reader.Read();
+                            int countMovieName = (int)reader[0];
+                            reader.Close();
+                            if (countMovieName < 1)
+                            {
+                                command = new SqlCommand(@"SELECT Id FROM DirectorsView WHERE FullName = '" + DirectorFullName + "'", conn);
+                                reader = command.ExecuteReader();
+                                reader.Read();
+                                int NewDirectorId = (int)reader[0];
+                                reader.Close();
+                                command = new SqlCommand(@"UPDATE Movies SET DirectorId = '" + NewDirectorId + "' WHERE Title = '" + title + "'", conn);
+                                command.ExecuteNonQuery();
+                                command = new SqlCommand(@"UPDATE Movies SET Title = '" + newTitle + "' WHERE Title = '" + title + "'", conn);
+                                command.ExecuteNonQuery();
 
-                        command = new SqlCommand(@"SELECT Id FROM DirectorsView WHERE FullName = '" + DirectorFullName + "'", conn);
-                        SqlDataReader reader = command.ExecuteReader();
-                        reader.Read();
-                        int NewDirectorId = (int)reader[0];
-                        reader.Close();
-                        command = new SqlCommand(@"UPDATE Movies SET DirectorId = '" + NewDirectorId + "' WHERE Title = '" + title + "'", conn);
-                        command.ExecuteNonQuery();
-                        command = new SqlCommand(@"UPDATE Movies SET Title = '" + newTitle + "' WHERE Title = '" + title + "'", conn);
-                        command.ExecuteNonQuery();
+                                Dispatcher.Invoke(() =>
+                                {
+                                    ListBoxMovie.Items.Insert(ListBoxMovie.Items.IndexOf(title), newTitle);
+                                    ListBoxMovie.Items.RemoveAt(ListBoxMovie.Items.IndexOf(title));
+                                });
+                            }
+                            else
+                            {
+                                MessageBox.Show("Unable to update movie. Title already exists.");
+
+                            }
+                        }
+                        else
+                        {
+                            command = new SqlCommand(@"SELECT Id FROM DirectorsView WHERE FullName = '" + DirectorFullName + "'", conn);
+                            reader = command.ExecuteReader();
+                            reader.Read();
+                            int NewDirectorId = (int)reader[0];
+                            reader.Close();
+                            command = new SqlCommand(@"UPDATE Movies SET DirectorId = '" + NewDirectorId + "' WHERE Title = '" + title + "'", conn);
+                            command.ExecuteNonQuery();
+                        }
                     }
                     catch (Exception e)
                     {
@@ -323,19 +358,11 @@ namespace Lab1Database
                     {
                         conn.Close();
                         EnableInput();
-                        if (title != newTitle)
-                        {
-                            Dispatcher.Invoke(() =>
-                            {
-                                ListBoxMovie.Items.Insert(ListBoxMovie.Items.IndexOf(title), newTitle);
-                                ListBoxMovie.SelectedIndex = ListBoxMovie.Items.IndexOf(title) - 1;
-                                ListBoxMovie.Items.RemoveAt(ListBoxMovie.Items.IndexOf(title));
-                            });
-                        }
+
                         Dispatcher.Invoke(() =>
                         {
-                            ButtonMovieUpdate.IsEnabled = true;
-                            ButtonMovieDelete.IsEnabled = true;
+                            ListBoxMovie.SelectedIndex = -1;
+                            ListBoxMovie.SelectedIndex = ListBoxMovie.Items.IndexOf(newTitle);
                         });
                     }
                 }
@@ -352,6 +379,7 @@ namespace Lab1Database
         {
             Task.Run(() =>
             {
+                bool success = false;
                 using (conn = new SqlConnection(Datastring))
                 {
                     try
@@ -363,26 +391,44 @@ namespace Lab1Database
                         command = new SqlCommand($@"CREATE VIEW DirectorsView AS SELECT FirstName +' '+ LastName AS FullName, Id FROM Directors", conn); //Create new view
                         command.ExecuteNonQuery();
 
-                        command = new SqlCommand(@"SELECT Id FROM DirectorsView WHERE FullName = '" + directorFullName + "'", conn);
+                        command = new SqlCommand($@"SELECT COUNT(FullName) FROM DirectorsView WHERE FullName = '{newFirstName} {newLastName}'", conn);
                         SqlDataReader reader = command.ExecuteReader();
                         reader.Read();
-                        int directorId = (int)reader[0];
+                        int countDirectorName = (int)reader[0];
                         reader.Close();
-                        command = new SqlCommand(@"UPDATE Directors SET FirstName = '" + newFirstName + "' WHERE Id = " + directorId, conn);
-                        command.ExecuteNonQuery();
-                        command = new SqlCommand(@"UPDATE Directors SET LastName = '" + newLastName + "' WHERE Id = " + directorId, conn);
-                        command.ExecuteNonQuery();
-                        command = new SqlCommand(@"SELECT FirstName + ' ' + LastName FROM Directors WHERE Id = " + directorId, conn);
-                        reader.Close();
-                        reader = command.ExecuteReader();
-                        reader.Read();
-                        Dispatcher.Invoke(() =>
+                        if (countDirectorName < 1)
                         {
-                            ComboBoxDirectors.Items.Insert(ComboBoxDirectors.Items.IndexOf(directorFullName), (string)reader[0]);
-                            ComboBoxDirectors.Items.RemoveAt(ComboBoxDirectors.Items.IndexOf(directorFullName));
-                            ComboBoxDirectors.SelectedIndex = ComboBoxDirectors.Items.IndexOf((string)reader[0]);
-                        });
-                        reader.Close();
+
+                            command = new SqlCommand(@"SELECT Id FROM DirectorsView WHERE FullName = '" + directorFullName + "'", conn);
+                            reader = command.ExecuteReader();
+                            reader.Read();
+                            int directorId = (int)reader[0];
+                            reader.Close();
+                            command = new SqlCommand(@"UPDATE Directors SET FirstName = '" + newFirstName + "' WHERE Id = " + directorId, conn);
+                            command.ExecuteNonQuery();
+                            command = new SqlCommand(@"UPDATE Directors SET LastName = '" + newLastName + "' WHERE Id = " + directorId, conn);
+                            command.ExecuteNonQuery();
+                            command = new SqlCommand(@"SELECT FirstName + ' ' + LastName FROM Directors WHERE Id = " + directorId, conn);
+                            reader.Close();
+                            reader = command.ExecuteReader();
+                            reader.Read();
+                            Dispatcher.Invoke(() =>
+                            {
+                                ComboBoxDirectors.Items.Insert(ComboBoxDirectors.Items.IndexOf(directorFullName), (string)reader[0]);
+                                if (ComboBoxDirectors.SelectedIndex == ComboBoxDirectors.Items.IndexOf(directorFullName))
+                                    ComboBoxDirectors.SelectedIndex = ComboBoxDirectors.Items.IndexOf((string)reader[0]);
+                                ComboBoxDirectors.Items.RemoveAt(ComboBoxDirectors.Items.IndexOf(directorFullName));
+                            });
+                            reader.Close();
+                            Dispatcher.Invoke(() =>
+                            {
+                                ListBoxDirector.Items.Insert(ListBoxDirector.Items.IndexOf(directorFullName), newFirstName + " " + newLastName);
+                                ListBoxDirector.Items.RemoveAt(ListBoxDirector.Items.IndexOf(directorFullName));
+                            });
+                            success = true;
+                        }
+                        else
+                            MessageBox.Show("Unable to update director. Director with that name already exists.");
                     }
                     catch (Exception e)
                     {
@@ -391,12 +437,13 @@ namespace Lab1Database
                     finally
                     {
                         conn.Close();
-                        Dispatcher.Invoke(() =>
+                        if (success)
                         {
-                            ListBoxDirector.Items.Insert(ListBoxDirector.Items.IndexOf(directorFullName), newFirstName + " " + newLastName);
-                            ListBoxDirector.SelectedIndex = ListBoxDirector.Items.IndexOf(directorFullName) - 1;
-                            ListBoxDirector.Items.RemoveAt(ListBoxDirector.Items.IndexOf(directorFullName));
-                        });
+                            Dispatcher.Invoke(() =>
+                            {
+                                ListBoxDirector.SelectedIndex = ListBoxDirector.Items.IndexOf(newFirstName + " " + newLastName);
+                            });
+                        }
                         EnableInput();
                     }
                 }
@@ -746,7 +793,13 @@ namespace Lab1Database
                 ListBoxMovie.IsEnabled = true;
                 ListBoxDirector.IsEnabled = true;
                 ButtonAddMovie.IsEnabled = TextBoxTitle.Text != "";
+                ButtonMovieDelete.IsEnabled = ListBoxMovie.SelectedIndex > -1;
+                ButtonMovieUpdate.IsEnabled = ListBoxMovie.SelectedIndex > -1;
+
                 ButtonDirectorAdd.IsEnabled = TextBoxFirstName.Text != "" && TextBoxLastName.Text != "";
+                ButtonDirectorDelete.IsEnabled = ListBoxDirector.SelectedIndex > -1;
+                ButtonDirectorUpdate.IsEnabled = ListBoxDirector.SelectedIndex > -1;
+
                 TextBoxTitle.IsEnabled = true;
                 TextBoxFirstName.IsEnabled = true;
                 TextBoxLastName.IsEnabled = true;
